@@ -1,191 +1,203 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useNuiEvent } from '../../hooks/useNuiEvent';
-import Indicator from './indicator';
 import { fetchNui } from '../../utils/fetchNui';
-import { Box, createStyles } from '@mantine/core';
-import type { GameDifficulty, SkillCheckProps } from '../../typings';
+import { Box, createStyles, Text } from '@mantine/core';
+import type { GameDifficulty } from '../../typings';
+import ScaleFade from '../../transitions/ScaleFade';
 
-export const circleCircumference = 2 * 50 * Math.PI;
+const BAR_WIDTH = 400; 
 
-const getRandomAngle = (min: number, max: number) => Math.floor(Math.random() * (max - min)) + min;
-
-const difficultyOffsets = {
-  easy: 50,
-  medium: 40,
-  hard: 25,
-};
-
-const useStyles = createStyles((theme, params: { difficultyOffset: number }) => ({
-  svg: {
+const useStyles = createStyles((theme) => ({
+  wrapper: {
     position: 'absolute',
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
-    r: 50,
-    width: 500,
-    height: 500,
-  },
-  track: {
-    fill: 'transparent',
-    stroke: theme.colors.dark[5],
-    strokeWidth: 8,
-    r: 50,
-    cx: 250,
-    cy: 250,
-    strokeDasharray: circleCircumference,
-    '@media (min-height: 1440px)': {
-      strokeWidth: 10,
-      r: 65,
-      strokeDasharray: 2 * 65 * Math.PI,
-    },
-  },
-  skillArea: {
-    fill: 'transparent',
-    stroke: theme.fn.primaryColor(),
-    strokeWidth: 8,
-    r: 50,
-    cx: 250,
-    cy: 250,
-    strokeDasharray: circleCircumference,
-    strokeDashoffset: circleCircumference - (Math.PI * 50 * params.difficultyOffset) / 180,
-    '@media (min-height: 1440px)': {
-      strokeWidth: 10,
-      r: 65,
-      strokeDasharray: 2 * 65 * Math.PI,
-      strokeDashoffset: 2 * 65 * Math.PI - (Math.PI * 65 * params.difficultyOffset) / 180,
-    },
-  },
-  indicator: {
-    stroke: 'red',
-    strokeWidth: 16,
-    fill: 'transparent',
-    r: 50,
-    cx: 250,
-    cy: 250,
-    strokeDasharray: circleCircumference,
-    strokeDashoffset: circleCircumference - 3,
-    '@media (min-height: 1440px)': {
-      strokeWidth: 18,
-      r: 65,
-      strokeDasharray: 2 * 65 * Math.PI,
-      strokeDashoffset: 2 * 65 * Math.PI - 5,
-    },
-  },
-  button: {
-    position: 'absolute',
-    left: '50%',
-    top: '50%',
-    transform: 'translate(-50%, -50%)',
-    backgroundColor: theme.colors.dark[5],
-    width: 25,
-    height: 25,
-    textAlign: 'center',
-    borderRadius: 5,
-    fontSize: 16,
-    fontWeight: 500,
+    backgroundColor: 'rgba(10, 10, 10, 0.98)',
+    padding: '25px 35px',
+    borderRadius: 4,
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    boxShadow: '0 20px 50px rgba(0, 0, 0, 0.9)',
     display: 'flex',
-    justifyContent: 'center',
+    flexDirection: 'column',
     alignItems: 'center',
-    '@media (min-height: 1440px)': {
-      width: 30,
-      height: 30,
-      fontSize: 22,
-    },
+    gap: 15,
   },
+  headerText: {
+    color: '#00e5ff',
+    fontSize: 14,
+    fontWeight: 800,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    textShadow: '0 0 10px rgba(0, 229, 255, 0.5)',
+  },
+  barContainer: {
+    position: 'relative',
+    width: BAR_WIDTH,
+    height: 40,
+    backgroundColor: '#050505',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    overflow: 'hidden',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  // Jejak titik latar belakang agar pemain tahu batas bar
+  trackDots: {
+    position: 'absolute',
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '0 10px',
+    opacity: 0.1,
+  },
+  targetZone: {
+    position: 'absolute',
+    height: '100%',
+    backgroundColor: 'rgba(0, 229, 255, 0.25)',
+    borderLeft: '2px solid #00e5ff',
+    borderRight: '2px solid #00e5ff',
+    zIndex: 1,
+    boxShadow: 'inset 0 0 15px rgba(0, 229, 255, 0.2)',
+  },
+  movingBar: {
+    position: 'absolute',
+    height: '80%',
+    width: 4,
+    backgroundColor: '#fff',
+    boxShadow: '0 0 15px #fff, 0 0 5px #fff',
+    zIndex: 3,
+    borderRadius: 2,
+  },
+  buttonContainer: {
+    width: 50,
+    height: 50,
+    backgroundColor: '#111',
+    border: '2px solid #00e5ff',
+    borderRadius: 8,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#00e5ff',
+    fontSize: 24,
+    fontWeight: 900,
+    textShadow: '0 0 10px rgba(0, 229, 255, 0.8)',
+    boxShadow: '0 4px 0 #008ba3',
+  }
 }));
 
-const SkillCheck: React.FC = () => {
+const TimedBarSkillCheck: React.FC = () => {
+  const { classes } = useStyles();
   const [visible, setVisible] = useState(false);
-  const dataRef = useRef<{ difficulty: GameDifficulty | GameDifficulty[]; inputs?: string[] } | null>(null);
-  const dataIndexRef = useRef<number>(0);
-  const [skillCheck, setSkillCheck] = useState<SkillCheckProps>({
-    angle: 0,
-    difficultyOffset: 50,
-    difficulty: 'easy',
-    key: 'e',
-  });
-  const { classes } = useStyles({ difficultyOffset: skillCheck.difficultyOffset });
+  const [progress, setProgress] = useState(0); 
+  const [target, setTarget] = useState({ start: 40, size: 20 });
+  const [key, setKey] = useState('E');
+  
+  const requestRef = useRef<number>();
+  const startTimeRef = useRef<number>();
+  const directionRef = useRef<1 | -1>(1);
+  const currentProgressRef = useRef(0);
 
-  useNuiEvent('startSkillCheck', (data: { difficulty: GameDifficulty | GameDifficulty[]; inputs?: string[] }) => {
-    dataRef.current = data;
-    dataIndexRef.current = 0;
-    const gameData = Array.isArray(data.difficulty) ? data.difficulty[0] : data.difficulty;
-    const offset = typeof gameData === 'object' ? gameData.areaSize : difficultyOffsets[gameData];
-    const randomKey = data.inputs ? data.inputs[Math.floor(Math.random() * data.inputs.length)] : 'e';
-    setSkillCheck({
-      angle: -90 + getRandomAngle(120, 360 - offset),
-      difficultyOffset: offset,
-      difficulty: gameData,
-      keys: data.inputs?.map((input) => input.toLowerCase()),
-      key: randomKey.toLowerCase(),
-    });
-
-    setVisible(true);
-  });
-
-  useNuiEvent('skillCheckCancel', () => {
-    setVisible(false);
-    fetchNui('skillCheckOver', false);
-  });
-
-  const handleComplete = (success: boolean) => {
-    if (!dataRef.current) return;
-    if (!success || !Array.isArray(dataRef.current.difficulty)) {
-      setVisible(false);
-      return fetchNui('skillCheckOver', success);
-    }
-
-    if (dataIndexRef.current >= dataRef.current.difficulty.length - 1) {
-      setVisible(false);
-      return fetchNui('skillCheckOver', success);
-    }
-
-    dataIndexRef.current++;
-    const data = dataRef.current.difficulty[dataIndexRef.current];
-    const key = dataRef.current.inputs
-      ? dataRef.current.inputs[Math.floor(Math.random() * dataRef.current.inputs.length)]
-      : 'e';
-    const offset = typeof data === 'object' ? data.areaSize : difficultyOffsets[data];
-    setSkillCheck((prev) => ({
-      ...prev,
-      angle: -90 + getRandomAngle(120, 360 - offset),
-      difficultyOffset: offset,
-      difficulty: data,
-      key: key.toLowerCase(),
-    }));
+  const difficultyMap = {
+    easy: { size: 22, speed: 0.02 }, // Speed dalam persen per milidetik
+    medium: { size: 16, speed: 0.035 },
+    hard: { size: 10, speed: 0.05 }
   };
 
+  const animate = useCallback((time: number) => {
+    if (startTimeRef.current === undefined) startTimeRef.current = time;
+    
+    const deltaTime = time - startTimeRef.current;
+    startTimeRef.current = time;
+
+    // Ambil speed berdasarkan kesulitan (default ke easy jika tidak ada)
+    const speed = 0.03; // Base speed
+
+    let nextProgress = currentProgressRef.current + (speed * deltaTime) * directionRef.current;
+
+    if (nextProgress >= 100) {
+      nextProgress = 100;
+      directionRef.current = -1;
+    } else if (nextProgress <= 0) {
+      nextProgress = 0;
+      directionRef.current = 1;
+    }
+
+    currentProgressRef.current = nextProgress;
+    setProgress(nextProgress);
+    requestRef.current = requestAnimationFrame(animate);
+  }, []);
+
+  useNuiEvent('startSkillCheck', (data: { difficulty: GameDifficulty; inputs?: string[] }) => {
+    const diff = Array.isArray(data.difficulty) ? data.difficulty[0] : data.difficulty;
+    // @ts-ignore
+    const setting = difficultyMap[diff] || difficultyMap.easy;
+    
+    const randomStart = Math.floor(Math.random() * 50) + 15;
+    
+    setTarget({ start: randomStart, size: setting.size });
+    setKey((data.inputs ? data.inputs[Math.floor(Math.random() * data.inputs.length)] : 'E').toUpperCase());
+    
+    currentProgressRef.current = 0;
+    setProgress(0);
+    directionRef.current = 1;
+    startTimeRef.current = undefined;
+    
+    setVisible(true);
+    requestRef.current = requestAnimationFrame(animate);
+  });
+
+  const stopGame = useCallback((success: boolean) => {
+    if (requestRef.current) cancelAnimationFrame(requestRef.current);
+    setVisible(false);
+    fetchNui('skillCheckOver', success);
+  }, []);
+
+  useNuiEvent('skillCheckCancel', () => stopGame(false));
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key.toUpperCase() === key) {
+        const isSuccess = currentProgressRef.current >= target.start && 
+                          currentProgressRef.current <= (target.start + target.size);
+        stopGame(isSuccess);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [visible, key, target, stopGame]);
+
   return (
-    <>
-      {visible && (
-        <>
-          <svg className={classes.svg}>
-            {/*Circle track*/}
-            <circle className={classes.track} />
-            {/*SkillCheck area*/}
-            <circle transform={`rotate(${skillCheck.angle}, 250, 250)`} className={classes.skillArea} />
-            <Indicator
-              angle={skillCheck.angle}
-              offset={skillCheck.difficultyOffset}
-              multiplier={
-                skillCheck.difficulty === 'easy'
-                  ? 1
-                  : skillCheck.difficulty === 'medium'
-                  ? 1.5
-                  : skillCheck.difficulty === 'hard'
-                  ? 1.75
-                  : skillCheck.difficulty.speedMultiplier
-              }
-              handleComplete={handleComplete}
-              className={classes.indicator}
-              skillCheck={skillCheck}
-            />
-          </svg>
-          <Box className={classes.button}>{skillCheck.key.toUpperCase()}</Box>
-        </>
-      )}
-    </>
+    <ScaleFade visible={visible}>
+      <Box className={classes.wrapper}>
+        <Text className={classes.headerText}>Timed Action</Text>
+
+        <Box className={classes.barContainer}>
+          <Box className={classes.trackDots}>
+            {Array.from({ length: 20 }).map((_, i) => <Box key={i} sx={{ width: 2, height: 2, backgroundColor: '#fff' }} />)}
+          </Box>
+
+          <Box 
+            className={classes.targetZone} 
+            style={{ left: `${target.start}%`, width: `${target.size}%` }} 
+          />
+          
+          <Box 
+            className={classes.movingBar} 
+            style={{ left: `${progress}%`, transform: 'translateX(-50%)' }} 
+          />
+        </Box>
+
+        <Box className={classes.buttonContainer}>{key}</Box>
+        
+        <Text color="dimmed" size="xs" sx={{ textTransform: 'uppercase', opacity: 0.5 }}>
+          Press when indicator is in the blue zone
+        </Text>
+      </Box>
+    </ScaleFade>
   );
 };
 
-export default SkillCheck;
+export default TimedBarSkillCheck;

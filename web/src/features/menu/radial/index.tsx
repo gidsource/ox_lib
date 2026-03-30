@@ -17,32 +17,35 @@ const useStyles = createStyles((theme) => ({
     transform: 'translate(-50%, -50%)',
   },
   sector: {
-    fill: theme.colors.dark[6],
+    fill: 'rgba(20, 20, 20, 0.85)', // Warna hitam transparan elegan
     color: theme.colors.dark[0],
+    transition: 'fill 0.15s ease-in-out', // Animasi transisi smooth
 
     '&:hover': {
-      fill: theme.fn.primaryColor(),
+      fill: theme.colors.blue[6], // Warna Oranye saat di-hover (bisa diganti)
       cursor: 'pointer',
       '> g > text, > g > svg > path': {
         fill: '#fff',
       },
     },
     '> g > text': {
-      fill: theme.colors.dark[0],
+      fill: theme.colors.gray[3], // Warna teks agak putih
       strokeWidth: 0,
+      fontWeight: 600, // Teks agak tebal
     },
   },
   backgroundCircle: {
-    fill: theme.colors.dark[6],
+    fill: 'transparent', // Dibuat transparan agar bolong di sela-sela menu
   },
   centerCircle: {
-    fill: theme.fn.primaryColor(),
+    fill: 'rgba(20, 20, 20, 0.95)', // Warna tengah gelap
     color: '#fff',
-    stroke: theme.colors.dark[6],
-    strokeWidth: 4,
+    stroke: 'rgba(255,255,255,0.05)', // Garis pinggir tipis transparan
+    strokeWidth: 2,
+    transition: 'fill 0.15s ease-in-out',
     '&:hover': {
       cursor: 'pointer',
-      fill: theme.colors[theme.primaryColor][theme.fn.primaryShade() - 1],
+      fill: theme.colors.red[6], // Oranye saat tombol tengah di-hover
     },
   },
   centerIconContainer: {
@@ -152,25 +155,26 @@ const RadialMenu: React.FC = () => {
             viewBox="0 0 350 350"
             transform="rotate(90)"
           >
-            {/* Fixed issues with background circle extending the circle when there's less than 3 items */}
+            {/* Background bulat transparan agar tidak ada border belakang */}
             <g transform="translate(175, 175)">
               <circle r={175} className={classes.backgroundCircle} />
             </g>
             {menuItems.map((item, index) => {
               const pieAngle = 360 / (menuItems.length < 3 ? 3 : menuItems.length);
               const angle = degToRad(pieAngle / 2 + 90);
-              const gap = 1;
+              const gap = 3.5; // DIPERBESAR: Memperlebar jarak potongan antar menu
               const radius = 175 * 0.65 - gap;
               const sinAngle = Math.sin(angle);
               const cosAngle = Math.cos(angle);
               const iconYOffset = splitTextIntoLines(item.label, 15).length > 3 ? 3 : 0;
               const iconX = 175 + sinAngle * radius;
-              const iconY = 175 + cosAngle * radius + iconYOffset; // Apply the Y offset to iconY
+              const iconY = 175 + cosAngle * radius + iconYOffset;
               const iconWidth = Math.min(Math.max(item.iconWidth || 50, 0), 100);
               const iconHeight = Math.min(Math.max(item.iconHeight || 50, 0), 100);
 
               return (
                 <g
+                  key={index}
                   transform={`rotate(-${index * pieAngle} 175 175) translate(${sinAngle * gap}, ${cosAngle * gap})`}
                   className={classes.sector}
                   onClick={async () => {
@@ -224,6 +228,8 @@ const RadialMenu: React.FC = () => {
                 </g>
               );
             })}
+            
+            {/* Lingkaran Pusat (Tombol Tutup / Kembali) */}
             <g
               transform={`translate(175, 175)`}
               onClick={async () => {
@@ -237,7 +243,8 @@ const RadialMenu: React.FC = () => {
                 }
               }}
             >
-              <circle r={28} className={classes.centerCircle} />
+              {/* DIPERBESAR: Radius dari 28 menjadi 50 agar lubang tengah lebih besar */}
+              <circle r={50} className={classes.centerCircle} /> 
             </g>
           </svg>
           <div className={classes.centerIconContainer}>
@@ -246,7 +253,7 @@ const RadialMenu: React.FC = () => {
               fixedWidth
               className={classes.centerIcon}
               color="#fff"
-              size="2x"
+              size="2x" // Ukuran ikon X di tengah
             />
           </div>
         </ScaleFade>

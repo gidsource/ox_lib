@@ -1,5 +1,5 @@
 import { useNuiEvent } from '../../../hooks/useNuiEvent';
-import { Box, createStyles, Flex, Stack, Text } from '@mantine/core';
+import { Box, createStyles, Flex, Stack, Text, TextInput } from '@mantine/core'; 
 import { useEffect, useState } from 'react';
 import { ContextMenuProps } from '../../../typings';
 import ContextButton from './components/ContextButton';
@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import HeaderButton from './components/HeaderButton';
 import ScaleFade from '../../../transitions/ScaleFade';
 import MarkdownComponents from '../../../config/MarkdownComponents';
+import LibIcon from '../../../components/LibIcon'; // Tambahan Import Icon
 
 const openMenu = (id: string | undefined) => {
   fetchNui<ContextMenuProps>('openContext', { id: id, back: true });
@@ -38,17 +39,22 @@ const useStyles = createStyles((theme) => ({
     textAlign: 'center',
   },
   buttonsContainer: {
-    height: 560,
+    height: 480, // Disesuaikan sedikit agar pas
     overflowY: 'scroll',
+    marginTop: 10,
   },
   buttonsFlexWrapper: {
     gap: 3,
   },
+  searchBoxContainer: {
+    marginBottom: 5,
+  }
 }));
 
 const ContextMenu: React.FC = () => {
   const { classes } = useStyles();
   const [visible, setVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(''); 
   const [contextMenu, setContextMenu] = useState<ContextMenuProps>({
     title: '',
     options: { '': { description: '', metadata: [] } },
@@ -60,16 +66,12 @@ const ContextMenu: React.FC = () => {
     fetchNui('closeContext');
   };
 
-  // Hides the context menu on ESC
   useEffect(() => {
     if (!visible) return;
-
     const keyHandler = (e: KeyboardEvent) => {
       if (['Escape'].includes(e.code)) closeContext();
     };
-
     window.addEventListener('keydown', keyHandler);
-
     return () => window.removeEventListener('keydown', keyHandler);
   }, [visible]);
 
@@ -81,7 +83,15 @@ const ContextMenu: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     setContextMenu(data);
+    setSearchQuery(''); 
     setVisible(true);
+  });
+
+  const filteredOptions = Object.entries(contextMenu.options).filter(([key, value]: any) => {
+    const title = value.title || key;
+    const desc = value.description || '';
+    const searchLower = searchQuery.toLowerCase();
+    return title.toLowerCase().includes(searchLower) || desc.toLowerCase().includes(searchLower);
   });
 
   return (
@@ -98,9 +108,37 @@ const ContextMenu: React.FC = () => {
           </Box>
           <HeaderButton icon="xmark" canClose={contextMenu.canClose} iconSize={18} handleClick={closeContext} />
         </Flex>
+        
+        {/* Kolom Pencarian yang Diperbarui */}
+        <Box className={classes.searchBoxContainer}>
+          <TextInput
+            placeholder="Search Menu..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.currentTarget.value)}
+            variant="filled"
+            icon={<LibIcon icon="magnifying-glass" />} // Menambahkan Icon Kaca Pembesar
+            styles={(theme) => ({
+              input: {
+                backgroundColor: theme.colors.dark[5], // Warna background sedikit lebih terang agar Highlighted
+                color: theme.colors.gray[2],
+                border: `1px solid ${theme.colors.dark[4]}`, // Tambahan border agar lebih tegas
+                borderRadius: theme.radius.sm,
+                transition: 'border-color 0.15s ease',
+                '&:focus': {
+                  borderColor: theme.colors[theme.primaryColor][theme.fn.primaryShade()],
+                  backgroundColor: theme.colors.dark[6],
+                }
+              },
+              icon: {
+                color: theme.colors.gray[5], // Warna icon agar pas dengan tema abu-abu
+              }
+            })}
+          />
+        </Box>
+
         <Box className={classes.buttonsContainer}>
           <Stack className={classes.buttonsFlexWrapper}>
-            {Object.entries(contextMenu.options).map((option, index) => (
+            {filteredOptions.map((option, index) => (
               <ContextButton option={option} key={`context-item-${index}`} />
             ))}
           </Stack>

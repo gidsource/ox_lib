@@ -1,11 +1,10 @@
 import React from 'react';
-import {createStyles, keyframes, RingProgress, Stack, Text, useMantineTheme} from '@mantine/core';
-import {useNuiEvent} from '../../hooks/useNuiEvent';
-import {fetchNui} from '../../utils/fetchNui';
+import { createStyles, keyframes, RingProgress, Stack, Text, useMantineTheme } from '@mantine/core';
+import { useNuiEvent } from '../../hooks/useNuiEvent';
+import { fetchNui } from '../../utils/fetchNui';
 import ScaleFade from '../../transitions/ScaleFade';
-import type {CircleProgressbarProps} from '../../typings';
+import type { CircleProgressbarProps } from '../../typings';
 
-// 33.5 is the r of the circle
 const progressCircle = keyframes({
   '0%': { strokeDasharray: `0, ${33.5 * 2 * Math.PI}` },
   '100%': { strokeDasharray: `${33.5 * 2 * Math.PI}, 0` },
@@ -15,7 +14,7 @@ const useStyles = createStyles((theme, params: { position: 'middle' | 'bottom'; 
   container: {
     width: '100%',
     height: params.position === 'middle' ? '100%' : '20%',
-    bottom: 0,
+    bottom: params.position === 'middle' ? 0 : 20, 
     position: 'absolute',
     display: 'flex',
     justifyContent: 'center',
@@ -23,29 +22,33 @@ const useStyles = createStyles((theme, params: { position: 'middle' | 'bottom'; 
   },
   progress: {
     '> svg > circle:nth-child(1)': {
-      stroke: theme.colors.dark[5],
+      stroke: 'rgba(0, 0, 0, 0.25)', 
     },
-    // Scuffed way of grabbing the first section and animating it
     '> svg > circle:nth-child(2)': {
       transition: 'none',
       animation: `${progressCircle} linear forwards`,
       animationDuration: `${params.duration}ms`,
+      strokeLinecap: 'round', 
     },
   },
   value: {
     textAlign: 'center',
-    fontFamily: 'Roboto Mono',
-    textShadow: theme.shadows.sm,
-    color: theme.colors.gray[3],
+    fontFamily: 'Roboto Mono, monospace',
+    fontSize: 13, // Sedikit dibesarkan agar pas dengan lingkaran baru
+    fontWeight: 700,
+    color: theme.white, 
+    letterSpacing: -0.5, 
   },
   label: {
     textAlign: 'center',
-    textShadow: theme.shadows.sm,
     color: theme.colors.gray[3],
-    height: 25,
+    fontSize: 11, // Teks label sedikit dibesarkan
+    textTransform: 'uppercase', 
+    letterSpacing: 1.0, 
+    marginTop: 6, 
   },
   wrapper: {
-    marginTop: params.position === 'middle' ? 25 : undefined,
+    marginTop: params.position === 'middle' ? '75vh' : undefined, 
   },
 }));
 
@@ -70,6 +73,7 @@ const CircleProgressbar: React.FC = () => {
     setLabel(data.label || '');
     setProgressDuration(data.duration);
     setPosition(data.position || 'middle');
+    
     const onePercent = data.duration * 0.01;
     const updateProgress = setInterval(() => {
       setValue((previousValue) => {
@@ -86,8 +90,8 @@ const CircleProgressbar: React.FC = () => {
         <ScaleFade visible={visible} onExitComplete={() => fetchNui('progressComplete')}>
           <Stack spacing={0} align="center" className={classes.wrapper}>
             <RingProgress
-              size={90}
-              thickness={7}
+              size={65} // UKURAN DIBESARKAN SEDIKIT (sebelumnya 55)
+              thickness={6} // GARIS DITEBALKAN (sebelumnya 3.5)
               sections={[{ value: 0, color: theme.primaryColor }]}
               onAnimationEnd={() => setVisible(false)}
               className={classes.progress}

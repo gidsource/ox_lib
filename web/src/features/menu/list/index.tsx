@@ -10,11 +10,12 @@ import LibIcon from '../../../components/LibIcon';
 
 const useStyles = createStyles((theme, params: { position?: MenuPosition; itemCount: number; selected: number }) => ({
   tooltip: {
-    backgroundColor: theme.colors.dark[6],
-    color: theme.colors.dark[2],
-    borderRadius: theme.radius.sm,
+    backgroundColor: '#000',
+    color: '#fff',
+    borderRadius: 0,
     maxWidth: 350,
     whiteSpace: 'normal',
+    border: '1px solid rgba(255,255,255,0.2)',
   },
   container: {
     position: 'absolute',
@@ -26,28 +27,26 @@ const useStyles = createStyles((theme, params: { position?: MenuPosition; itemCo
     right: params.position === 'top-right' || params.position === 'bottom-right' ? 1 : undefined,
     left: params.position === 'bottom-left' ? 1 : undefined,
     bottom: params.position === 'bottom-left' || params.position === 'bottom-right' ? 1 : undefined,
-    fontFamily: 'Roboto',
+    fontFamily: 'Arial, sans-serif',
     width: 384,
   },
   buttonsWrapper: {
     height: 'fit-content',
     maxHeight: 415,
     overflow: 'hidden',
-    borderRadius: params.itemCount <= 6 || params.selected === params.itemCount - 1 ? theme.radius.md : undefined,
-    backgroundColor: theme.colors.dark[8],
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
+    backgroundColor: 'transparent',
   },
   scrollArrow: {
-    backgroundColor: theme.colors.dark[8],
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     textAlign: 'center',
-    borderBottomLeftRadius: theme.radius.md,
-    borderBottomRightRadius: theme.radius.md,
     height: 25,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollArrowIcon: {
-    color: theme.colors.dark[2],
-    fontSize: 20,
+    color: '#fff',
+    fontSize: 16,
   },
 }));
 
@@ -101,7 +100,6 @@ const ListMenu: React.FC = () => {
             [selected]:
               indexStates[selected] - 1 >= 0 ? indexStates[selected] - 1 : menu.items[selected].values?.length! - 1,
           });
-
         break;
       case 'Enter':
         if (!menu.items[selected]) return;
@@ -140,7 +138,6 @@ const ListMenu: React.FC = () => {
       inline: 'start',
     });
     listRefs.current[selected]?.focus({ preventScroll: true });
-    // debounces the callback to avoid spam
     const timer = setTimeout(() => {
       fetchNui('changeSelected', [
         selected,
@@ -157,13 +154,10 @@ const ListMenu: React.FC = () => {
 
   useEffect(() => {
     if (!visible) return;
-
     const keyHandler = (e: KeyboardEvent) => {
       if (['Escape', 'Backspace'].includes(e.code)) closeMenu(false, e.code);
     };
-
     window.addEventListener('keydown', keyHandler);
-
     return () => window.removeEventListener('keydown', keyHandler);
   }, [visible]);
 
@@ -219,7 +213,7 @@ const ListMenu: React.FC = () => {
             <Header title={menu.title} />
             <Box className={classes.buttonsWrapper} onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => moveMenu(e)}>
               <FocusTrap active={visible}>
-                <Stack spacing={8} p={8} sx={{ overflowY: 'scroll' }}>
+                <Stack spacing={0} p={0} sx={{ overflowY: 'scroll' }}>
                   {menu.items.map((item, index) => (
                     <React.Fragment key={`menu-item-${index}`}>
                       {item.label && (
@@ -228,6 +222,7 @@ const ListMenu: React.FC = () => {
                           item={item}
                           scrollIndex={indexStates[index]}
                           checked={checkedStates[index]}
+                          isSelected={selected === index} // Kirim prop isSelected ke child component
                           ref={listRefs}
                         />
                       )}

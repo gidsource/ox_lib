@@ -37,34 +37,31 @@ const InputDialog: React.FC = () => {
     name: 'test',
   });
 
-  useNuiEvent<InputProps>('openDialog', (data) => {
-    setFields(data);
-    setVisible(true);
-    data.rows.forEach((row, index) => {
-      fieldForm.insert(
-        index,
-        {
-          value:
-            row.type !== 'checkbox'
-              ? row.type === 'date' || row.type === 'date-range' || row.type === 'time'
-                ? // Set date to current one if default is set to true
-                  row.default === true
-                  ? new Date().getTime()
-                  : Array.isArray(row.default)
-                  ? row.default.map((date) => new Date(date).getTime())
-                  : row.default && new Date(row.default).getTime()
-                : row.default
-              : row.checked,
-        } || { value: null }
-      );
-      // Backwards compat with new Select data type
-      if (row.type === 'select' || row.type === 'multi-select') {
-        row.options = row.options.map((option) =>
-          !option.label ? { ...option, label: option.value } : option
-        ) as Array<OptionValue>;
-      }
+useNuiEvent<InputProps>('openDialog', (data) => {
+  setFields(data);
+  setVisible(true);
+  data.rows.forEach((row, index) => {
+    // Perbaikan Logika: Pindahkan fallback null ke dalam properti value
+    fieldForm.insert(index, {
+      value: (row.type !== 'checkbox'
+        ? row.type === 'date' || row.type === 'date-range' || row.type === 'time'
+          ? row.default === true
+            ? new Date().getTime()
+            : Array.isArray(row.default)
+            ? row.default.map((date: any) => new Date(date).getTime())
+            : row.default && new Date(row.default as any).getTime()
+          : row.default
+        : row.checked) ?? null, // Gunakan Nullish Coalescing di sini
     });
+
+    // Backwards compat with new Select data type
+    if (row.type === 'select' || row.type === 'multi-select') {
+      row.options = row.options.map((option) =>
+        !option.label ? { ...option, label: option.value } : option
+      ) as Array<OptionValue>;
+    }
   });
+});
 
   useNuiEvent('closeInputDialog', async () => await handleClose(true));
 
