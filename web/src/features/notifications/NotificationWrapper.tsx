@@ -12,26 +12,28 @@ const useStyles = createStyles((theme) => ({
   container: {
     width: 300,
     height: 'fit-content',
-    backgroundColor: theme.colors.dark[6],
-    color: theme.colors.dark[0],
+    backgroundColor: '#000000', // Tema Hitam Pekat
+    color: '#ececec',
     padding: 12,
     borderRadius: theme.radius.sm,
     fontFamily: 'Roboto',
-    boxShadow: theme.shadows.sm,
+    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.5)',
+    border: '1px solid #1a1a1a',
   },
   title: {
-    fontWeight: 500,
+    fontWeight: 600,
     lineHeight: 'normal',
+    color: '#ffffff',
   },
   description: {
     fontSize: 12,
-    color: theme.colors.dark[2],
+    color: theme.colors.gray[5],
     fontFamily: 'Roboto',
     lineHeight: 'normal',
   },
   descriptionOnly: {
     fontSize: 14,
-    color: theme.colors.dark[2],
+    color: theme.colors.gray[3],
     fontFamily: 'Roboto',
     lineHeight: 'normal',
   },
@@ -49,26 +51,17 @@ const createAnimation = (from: string, to: string, visible: boolean) => keyframe
 });
 
 const getAnimation = (visible: boolean, position: string) => {
-  const animationOptions = visible ? '0.2s ease-out forwards' : '0.4s ease-in forwards'
+  // Durasi animasi diatur agar lebih halus saat menumpuk banyak
+  const animationOptions = visible ? '0.25s ease-out forwards' : '0.4s ease-in forwards';
   let animation: { from: string; to: string };
 
   if (visible) {
-    animation = position.includes('bottom') ? { from: 'Y(30px)', to: 'Y(0px)' } : { from: 'Y(-30px)', to:'Y(0px)' };
+    animation = { from: 'X(100%)', to: 'X(0px)' };
   } else {
-    if (position.includes('right')) {
-      animation = { from: 'X(0px)', to: 'X(100%)' }
-    } else if (position.includes('left')) {
-      animation = { from: 'X(0px)', to: 'X(-100%)' };
-    } else if (position === 'top-center') {
-      animation = { from: 'Y(0px)', to: 'Y(-100%)' };
-    } else if (position === 'bottom-center') {
-      animation = { from: 'Y(0px)', to: 'Y(100%)' };
-    } else {
-      animation = { from: 'X(0px)', to: 'X(100%)' };
-    }
+    animation = { from: 'X(0px)', to: 'X(120%)' };
   }
 
-  return `${createAnimation(animation.from, animation.to, visible)} ${animationOptions}`
+  return `${createAnimation(animation.from, animation.to, visible)} ${animationOptions}`;
 };
 
 const durationCircle = keyframes({
@@ -85,59 +78,24 @@ const Notifications: React.FC = () => {
 
     const toastId = data.id?.toString();
     const duration = data.duration || 3000;
-
     let iconColor: string;
-    let position = data.position || 'top-right';
+    const position = 'top-right'; // Tetap top-right agar tumpukan dari kanan valid
 
     data.showDuration = data.showDuration !== undefined ? data.showDuration : true;
-
     if (toastId) setToastKey(prevKey => prevKey + 1);
 
-    // Backwards compat with old notifications
-    switch (position) {
-      case 'top':
-        position = 'top-center';
-        break;
-      case 'bottom':
-        position = 'bottom-center';
-        break;
+    switch (data.type) {
+      case 'error': iconColor = 'red.6'; break;
+      case 'success': iconColor = 'teal.6'; break;
+      case 'warning': iconColor = 'yellow.6'; break;
+      default: iconColor = 'blue.6'; break;
     }
-
+    
     if (!data.icon) {
-      switch (data.type) {
-        case 'error':
-          data.icon = 'circle-xmark';
-          break;
-        case 'success':
-          data.icon = 'circle-check';
-          break;
-        case 'warning':
-          data.icon = 'circle-exclamation';
-          break;
-        default:
-          data.icon = 'circle-info';
-          break;
-      }
+      data.icon = data.type === 'error' ? 'circle-xmark' : data.type === 'success' ? 'circle-check' : data.type === 'warning' ? 'circle-exclamation' : 'circle-info';
     }
 
-    if (!data.iconColor) {
-      switch (data.type) {
-        case 'error':
-          iconColor = 'red.6';
-          break;
-        case 'success':
-          iconColor = 'teal.6';
-          break;
-        case 'warning':
-          iconColor = 'yellow.6';
-          break;
-        default:
-          iconColor = 'blue.6';
-          break;
-      }
-    } else {
-      iconColor = tinycolor(data.iconColor).toRgbString();
-    }
+    if (data.iconColor) iconColor = tinycolor(data.iconColor).toRgbString();
 
     toast.custom(
       (t) => (
@@ -146,18 +104,17 @@ const Notifications: React.FC = () => {
             animation: getAnimation(t.visible, position),
             ...data.style,
           }}
-          className={`${classes.container}`}
+          className={classes.container}
         >
           <Group noWrap spacing={12}>
             {data.icon && (
-              <>
+              <Box>
                 {data.showDuration ? (
                   <RingProgress
                     key={toastKey}
                     size={38}
                     thickness={2}
                     sections={[{ value: 100, color: iconColor }]}
-                    style={{ alignSelf: !data.alignIcon || data.alignIcon === 'center' ? 'center' : 'start' }}
                     styles={{
                       root: {
                         '> svg > circle:nth-of-type(2)': {
@@ -169,36 +126,25 @@ const Notifications: React.FC = () => {
                     }}
                     label={
                       <Center>
-                        <ThemeIcon
-                          color={iconColor}
-                          radius="xl"
-                          size={32}
-                          variant={tinycolor(iconColor).getAlpha() < 0 ? undefined : 'light'}
-                        >
+                        <ThemeIcon color={iconColor} radius="xl" size={32} variant="light">
                           <LibIcon icon={data.icon} fixedWidth color={iconColor} animation={data.iconAnimation} />
                         </ThemeIcon>
                       </Center>
                     }
                   />
                 ) : (
-                  <ThemeIcon
-                    color={iconColor}
-                    radius="xl"
-                    size={32}
-                    variant={tinycolor(iconColor).getAlpha() < 0 ? undefined : 'light'}
-                    style={{ alignSelf: !data.alignIcon || data.alignIcon === 'center' ? 'center' : 'start' }}
-                  >
+                  <ThemeIcon color={iconColor} radius="xl" size={32} variant="light">
                     <LibIcon icon={data.icon} fixedWidth color={iconColor} animation={data.iconAnimation} />
                   </ThemeIcon>
                 )}
-              </>
+              </Box>
             )}
             <Stack spacing={0}>
               {data.title && <Text className={classes.title}>{data.title}</Text>}
               {data.description && (
                 <ReactMarkdown
                   components={MarkdownComponents}
-                  className={`${!data.title ? classes.descriptionOnly : classes.description} description`}
+                  className={`${!data.title ? classes.descriptionOnly : classes.description}`}
                 >
                   {data.description}
                 </ReactMarkdown>
@@ -210,12 +156,22 @@ const Notifications: React.FC = () => {
       {
         id: toastId,
         duration: duration,
-        position: position,
+        position: position as any,
       }
     );
   });
 
-  return <Toaster />;
+  return (
+    <Toaster 
+      containerStyle={{
+        top: '50%', // Fixed di tengah kanan (Center-Right)
+        bottom: 'auto',
+        right: 20,
+        transform: 'translateY(-50%)' 
+      }}
+      gutter={10} // Jarak antar notifikasi agar saat slide tidak tabrakan
+    />
+  );
 };
 
 export default Notifications;

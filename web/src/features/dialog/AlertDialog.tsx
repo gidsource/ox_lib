@@ -10,7 +10,7 @@ import MarkdownComponents from '../../config/MarkdownComponents';
 
 const useStyles = createStyles((theme) => ({
   contentStack: {
-    color: theme.colors.dark[2],
+    color: theme.colors.gray[4], // Diubah sedikit lebih terang agar terbaca di background hitam
   },
 }));
 
@@ -54,6 +54,16 @@ const AlertDialog: React.FC = () => {
         overlayOpacity={0.5}
         exitTransitionDuration={150}
         transition="fade"
+        // HANYA GANTI WARNA BACKGROUND KE HITAM DI SINI
+        styles={{
+          modal: {
+            backgroundColor: '#000000',
+            border: '1px solid #1a1a1a', 
+          },
+          title: {
+            color: '#ececec', // Warna judul dibuat terang
+          }
+        }}
         title={<ReactMarkdown components={MarkdownComponents}>{dialogData.header}</ReactMarkdown>}
       >
         <Stack className={classes.contentStack}>

@@ -25,11 +25,15 @@ const useStyles = createStyles((theme, params: { position?: TextUiPosition }) =>
     fontSize: 16,
     padding: 12,
     margin: 8,
-    backgroundColor: theme.colors.dark[6],
-    color: theme.colors.dark[0],
+    // Mengubah background menjadi hitam seutuhnya
+    backgroundColor: '#000000',
+    // Mengubah warna teks menjadi putih terang agar kontras
+    color: '#ececec',
     fontFamily: 'Roboto',
     borderRadius: theme.radius.sm,
     boxShadow: theme.shadows.sm,
+    // Menambahkan border tipis agar tetap terlihat di layar yang gelap
+    border: '1px solid #1a1a1a',
   },
 }));
 
@@ -42,7 +46,7 @@ const TextUI: React.FC = () => {
   const { classes } = useStyles({ position: data.position });
 
   useNuiEvent<TextUiProps>('textUi', (data) => {
-    if (!data.position) data.position = 'right-center'; // Default right position
+    if (!data.position) data.position = 'right-center'; 
     setData(data);
     setVisible(true);
   });
@@ -62,7 +66,7 @@ const TextUI: React.FC = () => {
                   size="lg"
                   animation={data.iconAnimation}
                   style={{
-                    color: data.iconColor,
+                    color: data.iconColor || '#ececec',
                     alignSelf: !data.alignIcon || data.alignIcon === 'center' ? 'center' : 'start',
                   }}
                 />

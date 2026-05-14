@@ -10,20 +10,20 @@ interface Props {
 }
 
 const useStyles = createStyles((theme, params: { canClose?: boolean }) => ({
-  button: {
+  // Ubah penamaan kelas dari 'button' menjadi 'root' agar langsung menimpa bawaan Mantine
+  root: {
     borderRadius: 4,
     flex: '1 15%',
-    alignSelf: 'stretch',
-    height: 'auto',
-    textAlign: 'center',
-    justifyContent: 'center',
-    padding: 2,
-  },
-  root: {
-    border: 'none',
+    height: 38,
+    backgroundColor: theme.colors.dark[8],
+    border: 'none', // Memaksa border hilang
+    transition: 'background-color 0.15s ease',
+    '&:hover': {
+      backgroundColor: theme.colors.dark[6],
+    }
   },
   label: {
-    color: params.canClose === false ? theme.colors.dark[2] : theme.colors.dark[0],
+    color: params.canClose === false ? theme.colors.dark[5] : theme.colors.gray[4],
   },
 }));
 
@@ -32,9 +32,8 @@ const HeaderButton: React.FC<Props> = ({ icon, canClose, iconSize, handleClick }
 
   return (
     <Button
-      variant="default"
-      className={classes.button}
-      classNames={{ label: classes.label, root: classes.root }}
+      variant="subtle" // RAHASIA: Gunakan subtle agar tidak ada kotak bawaan "default"
+      classNames={{ root: classes.root, label: classes.label }}
       disabled={canClose === false}
       onClick={handleClick}
     >

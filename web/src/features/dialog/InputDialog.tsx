@@ -37,31 +37,29 @@ const InputDialog: React.FC = () => {
     name: 'test',
   });
 
-useNuiEvent<InputProps>('openDialog', (data) => {
-  setFields(data);
-  setVisible(true);
-  data.rows.forEach((row, index) => {
-    // Perbaikan Logika: Pindahkan fallback null ke dalam properti value
-    fieldForm.insert(index, {
-      value: (row.type !== 'checkbox'
-        ? row.type === 'date' || row.type === 'date-range' || row.type === 'time'
-          ? row.default === true
-            ? new Date().getTime()
-            : Array.isArray(row.default)
-            ? row.default.map((date: any) => new Date(date).getTime())
-            : row.default && new Date(row.default as any).getTime()
-          : row.default
-        : row.checked) ?? null, // Gunakan Nullish Coalescing di sini
-    });
+  useNuiEvent<InputProps>('openDialog', (data) => {
+    setFields(data);
+    setVisible(true);
+    data.rows.forEach((row, index) => {
+      fieldForm.insert(index, {
+        value: (row.type !== 'checkbox'
+          ? row.type === 'date' || row.type === 'date-range' || row.type === 'time'
+            ? row.default === true
+              ? new Date().getTime()
+              : Array.isArray(row.default)
+              ? row.default.map((date: any) => new Date(date).getTime())
+              : row.default && new Date(row.default as any).getTime()
+            : row.default
+          : row.checked) ?? null,
+      });
 
-    // Backwards compat with new Select data type
-    if (row.type === 'select' || row.type === 'multi-select') {
-      row.options = row.options.map((option) =>
-        !option.label ? { ...option, label: option.value } : option
-      ) as Array<OptionValue>;
-    }
+      if (row.type === 'select' || row.type === 'multi-select') {
+        row.options = row.options.map((option) =>
+          !option.label ? { ...option, label: option.value } : option
+        ) as Array<OptionValue>;
+      }
+    });
   });
-});
 
   useNuiEvent('closeInputDialog', async () => await handleClose(true));
 
@@ -79,7 +77,6 @@ useNuiEvent<InputProps>('openDialog', (data) => {
     const values: any[] = [];
     for (let i = 0; i < fields.rows.length; i++) {
       const row = fields.rows[i];
-
       if ((row.type === 'date' || row.type === 'date-range') && row.returnString) {
         if (!data.test[i]) continue;
         data.test[i].value = dayjs(data.test[i].value).format(row.format || 'DD/MM/YYYY');
@@ -100,13 +97,36 @@ useNuiEvent<InputProps>('openDialog', (data) => {
         centered
         closeOnEscape={fields.options?.allowCancel !== false}
         closeOnClickOutside={false}
-        size={fields.options?.size || 'xs'}
-        styles={{ title: { textAlign: 'center', width: '100%', fontSize: 18 } }}
-        title={fields.heading}
+        size={450} // Disesuaikan lebar menjadi 450px
         withCloseButton={false}
         overlayOpacity={0.5}
         transition="fade"
         exitTransitionDuration={150}
+        // PENERAPAN TEMA GELAP DAN AKSEN BIRU
+        styles={(theme) => ({
+          modal: {
+            backgroundColor: 'rgba(10, 10, 10, 0.98)',
+            border: `1px solid rgba(255, 255, 255, 0.05)`,
+            borderRadius: 6,
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.7)',
+            padding: '20px',
+          },
+          header: {
+            backgroundColor: theme.colors.dark[8],
+            borderBottom: `2px solid ${theme.colors.blue[6]}`, // Aksen biru
+            borderRadius: 4,
+            marginBottom: 15,
+            padding: '10px',
+          },
+          title: {
+            color: theme.colors.gray[2],
+            textAlign: 'center',
+            fontWeight: 600,
+            fontSize: 18,
+            width: '100%',
+          }
+        })}
+        title={fields.heading}
       >
         <form onSubmit={onSubmit}>
           <Stack>
@@ -115,18 +135,10 @@ useNuiEvent<InputProps>('openDialog', (data) => {
               return (
                 <React.Fragment key={item.id}>
                   {row.type === 'input' && (
-                    <InputField
-                      register={form.register(`test.${index}.value`, { required: row.required })}
-                      row={row}
-                      index={index}
-                    />
+                    <InputField register={form.register(`test.${index}.value`, { required: row.required })} row={row} index={index} />
                   )}
                   {row.type === 'checkbox' && (
-                    <CheckboxField
-                      register={form.register(`test.${index}.value`, { required: row.required })}
-                      row={row}
-                      index={index}
-                    />
+                    <CheckboxField register={form.register(`test.${index}.value`, { required: row.required })} row={row} index={index} />
                   )}
                   {(row.type === 'select' || row.type === 'multi-select') && (
                     <SelectField row={row} index={index} control={form.control} />
@@ -139,26 +151,34 @@ useNuiEvent<InputProps>('openDialog', (data) => {
                     <DateField control={form.control} row={row} index={index} />
                   ) : null}
                   {row.type === 'textarea' && (
-                    <TextareaField
-                      register={form.register(`test.${index}.value`, { required: row.required })}
-                      row={row}
-                      index={index}
-                    />
+                    <TextareaField register={form.register(`test.${index}.value`, { required: row.required })} row={row} index={index} />
                   )}
                 </React.Fragment>
               );
             })}
-            <Group position="right" spacing={10}>
+            
+            {/* TEMA TOMBOL FOOTER DI SINI */}
+            <Group position="right" spacing={10} mt={20}>
               <Button
                 uppercase
-                variant="default"
+                variant="subtle"
                 onClick={() => handleClose()}
-                mr={3}
                 disabled={fields.options?.allowCancel === false}
+                sx={(theme) => ({
+                  color: theme.colors.gray[4],
+                  '&:hover': { backgroundColor: theme.colors.dark[6] }
+                })}
               >
                 {locale.ui.cancel}
               </Button>
-              <Button uppercase variant="light" type="submit">
+              <Button 
+                uppercase 
+                type="submit"
+                sx={(theme) => ({
+                  backgroundColor: theme.colors.blue[6],
+                  '&:hover': { backgroundColor: theme.colors.blue[7] }
+                })}
+              >
                 {locale.ui.confirm}
               </Button>
             </Group>

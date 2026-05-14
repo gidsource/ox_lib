@@ -8,19 +8,32 @@ import ReactMarkdown from 'react-markdown';
 import HeaderButton from './components/HeaderButton';
 import ScaleFade from '../../../transitions/ScaleFade';
 import MarkdownComponents from '../../../config/MarkdownComponents';
-import LibIcon from '../../../components/LibIcon'; // Tambahan Import Icon
+import LibIcon from '../../../components/LibIcon';
 
 const openMenu = (id: string | undefined) => {
   fetchNui<ContextMenuProps>('openContext', { id: id, back: true });
 };
 
 const useStyles = createStyles((theme) => ({
-  container: {
+  // 1. Kontainer untuk posisi
+  positionContainer: {
     position: 'absolute',
-    top: '15%',
+    top: '10%',
     right: '25%',
-    width: 320,
-    height: 580,
+    width: 400, // <--- UBAH ANGKA INI (Sebelumnya 330, sekarang kita jadikan 420 atau sesuai selera)
+    zIndex: 100,
+  },
+  // 2. Kontainer untuk desain (BISA IKUT MENGHILANG SAAT MENU DITUTUP)
+  innerWrapper: {
+    maxHeight: 700, // Gunakan maxHeight agar otomatis mengecil jika menu sedikit
+    height: 'fit-content',
+    backgroundColor: 'rgba(10, 10, 10, 0.98)', 
+    padding: '12px',
+    border: `1px solid rgba(255, 255, 255, 0.05)`,
+    borderRadius: 6,
+    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.7)',
+    display: 'flex',
+    flexDirection: 'column',
   },
   header: {
     justifyContent: 'center',
@@ -31,23 +44,34 @@ const useStyles = createStyles((theme) => ({
   titleContainer: {
     borderRadius: 4,
     flex: '1 85%',
-    backgroundColor: theme.colors.dark[6],
+    backgroundColor: theme.colors.dark[8], 
+    borderBottom: `2px solid ${theme.colors.blue[6]}`, // Aksen warna biru
   },
   titleText: {
-    color: theme.colors.dark[0],
-    padding: 6,
+    color: theme.colors.gray[2],
+    padding: 8,
     textAlign: 'center',
+    fontWeight: 600,
   },
   buttonsContainer: {
-    height: 480, // Disesuaikan sedikit agar pas
-    overflowY: 'scroll',
+    maxHeight: 560, // Gunakan maxHeight agar batas scroll dinamis
+    height: 'fit-content',
+    overflowY: 'auto', // Berubah jadi auto agar scroll bar hilang jika menu sedikit
     marginTop: 10,
+    paddingRight: 4,
+    '&::-webkit-scrollbar': {
+      width: '4px',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      borderRadius: '10px',
+    },
   },
   buttonsFlexWrapper: {
-    gap: 3,
+    gap: 4,
   },
   searchBoxContainer: {
-    marginBottom: 5,
+    marginBottom: 8,
   }
 }));
 
@@ -90,58 +114,53 @@ const ContextMenu: React.FC = () => {
   const filteredOptions = Object.entries(contextMenu.options).filter(([key, value]: any) => {
     const title = value.title || key;
     const desc = value.description || '';
-    const searchLower = searchQuery.toLowerCase();
-    return title.toLowerCase().includes(searchLower) || desc.toLowerCase().includes(searchLower);
+    return title.toLowerCase().includes(searchQuery.toLowerCase()) || desc.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   return (
-    <Box className={classes.container}>
+    // positionContainer berada di luar, innerWrapper berada di DALAM ScaleFade
+    <Box className={classes.positionContainer}>
       <ScaleFade visible={visible}>
-        <Flex className={classes.header}>
-          {contextMenu.menu && (
-            <HeaderButton icon="chevron-left" iconSize={16} handleClick={() => openMenu(contextMenu.menu)} />
-          )}
-          <Box className={classes.titleContainer}>
-            <Text className={classes.titleText}>
-              <ReactMarkdown components={MarkdownComponents}>{contextMenu.title}</ReactMarkdown>
-            </Text>
-          </Box>
-          <HeaderButton icon="xmark" canClose={contextMenu.canClose} iconSize={18} handleClick={closeContext} />
-        </Flex>
-        
-        {/* Kolom Pencarian yang Diperbarui */}
-        <Box className={classes.searchBoxContainer}>
-          <TextInput
-            placeholder="Search Menu..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.currentTarget.value)}
-            variant="filled"
-            icon={<LibIcon icon="magnifying-glass" />} // Menambahkan Icon Kaca Pembesar
-            styles={(theme) => ({
-              input: {
-                backgroundColor: theme.colors.dark[5], // Warna background sedikit lebih terang agar Highlighted
-                color: theme.colors.gray[2],
-                border: `1px solid ${theme.colors.dark[4]}`, // Tambahan border agar lebih tegas
-                borderRadius: theme.radius.sm,
-                transition: 'border-color 0.15s ease',
-                '&:focus': {
-                  borderColor: theme.colors[theme.primaryColor][theme.fn.primaryShade()],
-                  backgroundColor: theme.colors.dark[6],
+        <Box className={classes.innerWrapper}>
+          <Flex className={classes.header}>
+            {contextMenu.menu && (
+              <HeaderButton icon="chevron-left" iconSize={16} handleClick={() => openMenu(contextMenu.menu)} />
+            )}
+            <Box className={classes.titleContainer}>
+              <Text className={classes.titleText}>
+                <ReactMarkdown components={MarkdownComponents}>{contextMenu.title}</ReactMarkdown>
+              </Text>
+            </Box>
+            <HeaderButton icon="xmark" canClose={contextMenu.canClose} iconSize={18} handleClick={closeContext} />
+          </Flex>
+          
+          <Box className={classes.searchBoxContainer}>
+            <TextInput
+              placeholder="Search menu..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.currentTarget.value)}
+              variant="filled"
+              icon={<LibIcon icon="magnifying-glass" />}
+              styles={(theme) => ({
+                input: {
+                  backgroundColor: theme.colors.dark[7],
+                  color: theme.colors.gray[2],
+                  border: `1px solid ${theme.colors.dark[5]}`,
+                  '&:focus': {
+                    borderColor: theme.colors.blue[6], 
+                  }
                 }
-              },
-              icon: {
-                color: theme.colors.gray[5], // Warna icon agar pas dengan tema abu-abu
-              }
-            })}
-          />
-        </Box>
+              })}
+            />
+          </Box>
 
-        <Box className={classes.buttonsContainer}>
-          <Stack className={classes.buttonsFlexWrapper}>
-            {filteredOptions.map((option, index) => (
-              <ContextButton option={option} key={`context-item-${index}`} />
-            ))}
-          </Stack>
+          <Box className={classes.buttonsContainer}>
+            <Stack className={classes.buttonsFlexWrapper}>
+              {filteredOptions.map((option, index) => (
+                <ContextButton option={option} key={`ctx-${index}`} />
+              ))}
+            </Stack>
+          </Box>
         </Box>
       </ScaleFade>
     </Box>
